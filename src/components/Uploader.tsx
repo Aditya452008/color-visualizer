@@ -29,9 +29,8 @@ export default function Uploader({ onUpload, isLoading }: UploaderProps) {
     setError(null);
     const isValidType = file.type.startsWith("image/") || file.type.startsWith("video/");
     
-    // Check max size (e.g. 50MB for video, 10MB for image)
-    const isVideo = file.type.startsWith("video/");
-    const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+    // Vercel Hobby has a 4.5MB limit, so we stick to 4MB to be safe
+    const maxSize = 4 * 1024 * 1024;
     
     if (!isValidType) {
       setError("Please upload a valid image (JPG, PNG) or video (MP4) file.");
@@ -39,7 +38,7 @@ export default function Uploader({ onUpload, isLoading }: UploaderProps) {
     }
     
     if (file.size > maxSize) {
-      setError(`File is too large. Max size is ${isVideo ? '50MB' : '10MB'}.`);
+      setError("File is too large for AI analysis. Please keep it under 4MB (common for phone photos).");
       return;
     }
 

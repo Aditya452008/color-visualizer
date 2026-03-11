@@ -18,9 +18,11 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [colors, setColors] = useState<ColorRecommendation[] | null>(null);
   const [activeColorHex, setActiveColorHex] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const handleUpload = async (uploadedFile: File) => {
     setFile(uploadedFile);
+    setApiError(null);
     // Create local object URL for instant preview
     const url = URL.createObjectURL(uploadedFile);
     setMediaUrl(url);
@@ -36,19 +38,20 @@ export default function Home() {
         body: formData,
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Failed to analyze image");
+        throw new Error(data.error || "Failed to analyze image");
       }
 
-      const data = await response.json();
       setColors(data.colors);
       // Auto-select the first color
       if (data.colors && data.colors.length > 0) {
         setActiveColorHex(data.colors[0].hex);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error analyzing:", error);
-      alert("Something went wrong while analyzing the room.");
+      setApiError(error.message || "Something went wrong while analyzing the room.");
     } finally {
       setIsLoading(false);
     }
@@ -60,6 +63,7 @@ export default function Home() {
     setMediaUrl(null);
     setColors(null);
     setActiveColorHex(null);
+    setApiError(null);
   };
 
   return (
@@ -143,6 +147,17 @@ export default function Home() {
                         />
                       ))}
                     </div>
+                  </div>
+                ) : apiError ? (
+                  <div className="glass-panel text-center py-12 px-6">
+                    <p className="text-red-400 font-medium mb-2">Analysis Failed</p>
+                    <p className="text-sm text-muted-foreground">{apiError}</p>
+                    <button 
+                      onClick={() => file && handleUpload(file)}
+                      className="mt-4 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-full text-xs font-medium transition-colors"
+                    >
+                      Try Again
+                    </button>
                   </div>
                 ) : (
                   <div className="glass-panel text-center py-12">
