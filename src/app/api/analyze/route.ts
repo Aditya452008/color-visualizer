@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Initialize Gemini SDK. It automatically uses process.env.GEMINI_API_KEY
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-
 export async function POST(req: NextRequest) {
   try {
+    // Check if API key is configured
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      console.error("GEMINI_API_KEY is not set in environment variables");
+      return NextResponse.json(
+        { error: "Server configuration error: API key not found. Please add GEMINI_API_KEY to environment variables." },
+        { status: 500 }
+      );
+    }
+
+    // Initialize Gemini SDK
+    const genAI = new GoogleGenerativeAI(apiKey);
+
     const formData = await req.formData();
     const media = formData.get("media") as File;
 
@@ -25,8 +35,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
     }
 
-    // Call Gemini Vision Model (gemini-1.5-flash is best for multi-modal quick tasks)
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    console.log("Calling Gemini API with model gemini-2.0-flash, file type:", mimeType, "size:", media.size);
+
+    // Call Gemini Vision Model
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const prompt = `
       You are an expert, high-end interior designer. Analyze the provided image or video of this room.
@@ -49,8 +61,7 @@ export async function POST(req: NextRequest) {
           "hex": "#E8ECEF",
           "vibe": "Nordic Mist",
           "explanation": "This soft gray-blue reflects the abundant natural light while complementing the warm oak floors."
-        },
-        ...
+        }
       ]
     `;
 
@@ -79,10 +90,11 @@ export async function POST(req: NextRequest) {
     const colors = JSON.parse(jsonStr);
 
     return NextResponse.json({ colors });
-  } catch (error) {
-    console.error("API Route Error:", error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("API Route Error:", errorMessage, error);
     return NextResponse.json(
-      { error: "Failed to analyze media" },
+      { error: `Failed to analyze media: ${errorMessage}` },
       { status: 500 }
     );
   }
